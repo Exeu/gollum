@@ -127,6 +127,8 @@ func (prod *Redis) Configure(conf core.PluginConfig) error {
 		prod.store = prod.storeSet
 	case "sortedset":
 		prod.store = prod.storeSortedSet
+	case "pub":
+		prod.store = prod.storePub
 	default:
 		fallthrough
 	case "string":
@@ -231,6 +233,16 @@ func (prod *Redis) storeString(msg core.Message) {
 	value, key := prod.getValueAndKey(msg)
 
 	result := prod.client.Set(key, string(value), 0)
+	if result.Err() != nil {
+		Log.Error.Print("Redis: ", result.Err())
+		prod.Drop(msg)
+	}
+}
+
+func (prod *Redis) storePub(msg core.Message) {
+	value, channel := prod.getValueAndKey(msg)
+
+	result := prod.client.Publish(channel, string(value))
 	if result.Err() != nil {
 		Log.Error.Print("Redis: ", result.Err())
 		prod.Drop(msg)

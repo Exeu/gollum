@@ -80,7 +80,8 @@ Parameters
 
 **Storage**
   Storage defines the type of the storage to use.
-  Valid values are: "hash", "list", "set", "sortedset", "string".
+  Valid values are: "hash", "list", "set", "sortedset", "string" and "pub".
+  The storagetype "pub" uses the redis Pub/Sub queue mechanism. The channel to which the message gets published to is defined through the "Key"
   By default this is set to "hash".
 
 **FieldFormatter**
