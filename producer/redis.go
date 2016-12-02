@@ -15,13 +15,14 @@
 package producer
 
 import (
+	"strconv"
+	"strings"
+	"sync"
+
 	"github.com/trivago/gollum/core"
 	"github.com/trivago/gollum/core/log"
 	"github.com/trivago/gollum/shared"
 	"gopkg.in/redis.v4"
-	"strconv"
-	"strings"
-	"sync"
 )
 
 // Redis producer plugin

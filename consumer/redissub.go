@@ -1,16 +1,16 @@
 package consumer
 
 import (
-	"fmt"
 	"sync"
 
 	"github.com/trivago/gollum/core"
 	"github.com/trivago/gollum/core/log"
 	"github.com/trivago/gollum/shared"
+	"github.com/trivago/gollum/vendor/gopkg.in/redis.v4"
 	"gopkg.in/redis.v4"
 )
 
-type Redis struct {
+type RedisSub struct {
 	core.ConsumerBase
 	address  string
 	protocol string
@@ -22,18 +22,17 @@ type Redis struct {
 }
 
 func init() {
-	shared.TypeRegistry.Register(Redis{})
+	shared.TypeRegistry.Register(RedisSub{})
 }
 
 // Configure initializes this consumer with values from a plugin config.
-func (cons *Redis) Configure(conf core.PluginConfig) error {
+func (cons *RedisSub) Configure(conf core.PluginConfig) error {
 	err := cons.ConsumerBase.Configure(conf)
 	if err != nil {
 		return err
 	}
 
 	cons.password = conf.GetString("Password", "")
-	cons.database = conf.GetInt("Database", 0)
 	cons.address, cons.protocol = shared.ParseAddress(conf.GetString("Address", ":6379"))
 	cons.channel = conf.GetString("Channel", "defaultValue")
 	cons.sequence = new(uint64)
@@ -41,12 +40,14 @@ func (cons *Redis) Configure(conf core.PluginConfig) error {
 	return nil
 }
 
-func (cons *Redis) receive(pubsub *redis.PubSub) {
-	for {
+func (cons *RedisSub) receive(pubsub *redis.PubSub) {
+	defer cons.WorkerDone()
+	for cons.IsActive() {
 		msg, err := pubsub.ReceiveMessage()
 
 		if err != nil {
-			fmt.Println("error")
+			Log.Error.Println("Error receiving message: ", err)
+			return nil
 		}
 
 		cons.Enqueue([]byte(msg.Payload), *cons.sequence)
@@ -54,13 +55,12 @@ func (cons *Redis) receive(pubsub *redis.PubSub) {
 	}
 }
 
-func (cons *Redis) Consume(workers *sync.WaitGroup) {
+func (cons *RedisSub) Consume(workers *sync.WaitGroup) {
 	cons.AddMainWorker(workers)
 	cons.client = redis.NewClient(&redis.Options{
 		Addr:     cons.address,
 		Network:  cons.protocol,
 		Password: cons.password,
-		DB:       cons.database,
 	})
 
 	if _, err := cons.client.Ping().Result(); err != nil {
