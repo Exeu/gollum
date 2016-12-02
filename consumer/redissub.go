@@ -6,7 +6,6 @@ import (
 	"github.com/trivago/gollum/core"
 	"github.com/trivago/gollum/core/log"
 	"github.com/trivago/gollum/shared"
-	"github.com/trivago/gollum/vendor/gopkg.in/redis.v4"
 	"gopkg.in/redis.v4"
 )
 
@@ -15,7 +14,6 @@ type RedisSub struct {
 	address  string
 	protocol string
 	password string
-	database int
 	channel  string
 	client   *redis.Client
 	sequence *uint64
@@ -40,19 +38,21 @@ func (cons *RedisSub) Configure(conf core.PluginConfig) error {
 	return nil
 }
 
-func (cons *RedisSub) receive(pubsub *redis.PubSub) {
+func (cons *RedisSub) receive(pubsub *redis.PubSub) error {
 	defer cons.WorkerDone()
 	for cons.IsActive() {
 		msg, err := pubsub.ReceiveMessage()
 
 		if err != nil {
 			Log.Error.Println("Error receiving message: ", err)
-			return nil
+			return err
 		}
 
 		cons.Enqueue([]byte(msg.Payload), *cons.sequence)
 		*cons.sequence++
 	}
+
+	return nil
 }
 
 func (cons *RedisSub) Consume(workers *sync.WaitGroup) {
@@ -67,12 +67,15 @@ func (cons *RedisSub) Consume(workers *sync.WaitGroup) {
 		Log.Error.Print("Redis: ", err)
 	}
 
-	pubsub, err := cons.client.Subscribe(cons.channel)
+	pubsub, err := cons.client.PSubscribe(cons.channel)
 	if err != nil {
-		panic(err)
+		Log.Error.Println("Error subscribing channel: ", err)
 	}
 
+	Log.Note.Println("Sucessfully subscribed channel: ", cons.channel)
+
 	go cons.receive(pubsub)
+	defer cons.client.Close()
 
 	cons.ControlLoop()
 }
