@@ -54,7 +54,11 @@ import (
 // By default this is set to "default".
 //
 // Storage defines the type of the storage to use. Valid values are: "hash",
-// "list", "set", "sortedset", "string". By default this is set to "hash".
+// "list", "set", "sortedset", "string", "pub". By default this is set to "hash".
+//
+// If the storage is set to "pub" the producer will send the message using the
+// redis PubSub messagingsystem. In this case the Key property of the config
+// becomes the channel name.
 //
 // FieldFormatter defines an extra formatter used to define an additional field or
 // score value if required by the storage type. If no field value is required
