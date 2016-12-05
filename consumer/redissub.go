@@ -52,21 +52,18 @@ func (cons *RedisSub) Configure(conf core.PluginConfig) error {
 	return nil
 }
 
-func (cons *RedisSub) receive(pubsub *redis.PubSub) error {
+func (cons *RedisSub) receive(pubsub *redis.PubSub) {
 	defer cons.WorkerDone()
 	for cons.IsActive() {
 		msg, err := pubsub.ReceiveMessage()
 
 		if err != nil {
 			Log.Error.Println("Error receiving message: ", err)
-			return err
 		}
 
 		cons.Enqueue([]byte(msg.Payload), *cons.sequence)
 		*cons.sequence++
 	}
-
-	return nil
 }
 
 func (cons *RedisSub) Consume(workers *sync.WaitGroup) {
