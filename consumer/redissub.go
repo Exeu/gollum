@@ -86,7 +86,7 @@ func (cons *RedisSub) Consume(workers *sync.WaitGroup) {
 		Log.Error.Println("Error subscribing channel: ", err)
 	}
 
-	Log.Note.Println("Sucessfully subscribed channel: ", cons.channel)
+	Log.Note.Println("Channel subscribed successfully: ", cons.channel)
 
 	go cons.receive(pubsub)
 	defer cons.client.Close()
